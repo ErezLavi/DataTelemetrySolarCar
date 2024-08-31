@@ -15,23 +15,40 @@ import queue
 
 
 bg_color = "#cccccc"  # Light gray
-header_bg_color = "#bbbbbb"  # Slightly darker gray#828282
+label_bg_color = "#bbbbbb"  # Slightly darker gray
+header_bg_color = "#021526"
 
 # Create the main GUI window
 root = tk.Tk()
 root.title("Serial Data Logger")
-
-
-# Set the main window size to match the screen
 root.geometry("1350x800")
+
+# Create a frame for the header
+header_frame = tk.Frame(root, bg=header_bg_color, relief="solid", bd=1)
+header_frame.pack(fill=tk.X, padx=5, pady=5, ipady=10)
+
+# Create a header label
+header_label = tk.Label(header_frame, text="Serial Data Logger", font=("Arial", 20),
+                        background=header_bg_color, fg=bg_color)
+header_label.pack(side=tk.LEFT, padx=10)
+
+# Add buttons to the header frame
+button_trip_analysis = ttk.Button(header_frame, text="Trip analysis")
+button_trip_analysis.pack(side=tk.RIGHT, padx=15)
+
+button_gps = ttk.Button(header_frame, text="GPS")
+button_gps.pack(side=tk.RIGHT, padx=15)
+
+button_data = ttk.Button(header_frame, text="Data")
+button_data.pack(side=tk.RIGHT, padx=15)
 
 # Create a frame to hold the data labels, data values, and plot buttons
 data_frame = ttk.Frame(root)
-data_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=20)  # Add padding for touch-friendly tapping
+data_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=10)  # Add padding for touch-friendly tapping
 
 # Create a frame to hold the plot
 plot_frame = ttk.Frame(root)
-plot_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=20)
+plot_frame.pack(fill=tk.BOTH, expand=True, padx=5)
 
 
 # Data column labels
@@ -46,7 +63,7 @@ plot_buttons = []
 
 # Create rows for data values and buttons
 for i, label_text in enumerate(column_labels):
-    label = ttk.Label(data_frame, text=label_text, font=("Arial", 12, "bold"), background=header_bg_color)
+    label = ttk.Label(data_frame, text=label_text, font=("Arial", 12, "bold"), background=label_bg_color)
     label.grid(row=0, column=i, padx=5, pady=5, sticky="ew")  # Extend label to fill both horizontal directions
 
     if i != 0:  # Exclude the timestamp label
