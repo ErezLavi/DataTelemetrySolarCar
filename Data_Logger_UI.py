@@ -21,7 +21,7 @@ header_bg_color = "#021526"
 # Create the main GUI window
 root = tk.Tk()
 root.title("Serial Data Logger")
-root.geometry("1350x800")
+root.geometry("1300x750")
 
 # Create a frame for the header
 header_frame = tk.Frame(root, bg=header_bg_color, relief="solid", bd=1)
@@ -61,10 +61,11 @@ column_labels = ["Timestamp", "Ah", "Voltage (V)", "Current (A)", "Power (Watt)"
 value_labels = []
 plot_buttons = []
 
+
 # Create rows for data values and buttons
 for i, label_text in enumerate(column_labels):
     label = ttk.Label(data_frame, text=label_text, font=("Arial", 12, "bold"), background=label_bg_color)
-    label.grid(row=0, column=i, padx=5, pady=5, sticky="ew")  # Extend label to fill both horizontal directions
+    label.grid(row=0, column=i, padx=3, pady=5, sticky="ew")  # Extend label to fill both horizontal directions
 
     if i != 0:  # Exclude the timestamp label
         value_label = ttk.Label(data_frame, text="", font=("Arial", 12), background=bg_color)
@@ -200,7 +201,7 @@ def enable_plotting(index):
     close_plot()
 
     # Create a new figure and axis for the new plot
-    fig, ax = plt.subplots(figsize=(4, 3))
+    fig, ax = plt.subplots(figsize=(8, 4))
     ani = FuncAnimation(fig, animate, interval=1000, cache_frame_data=False)
 
     # Embed the plot in the Tkinter window
@@ -208,14 +209,18 @@ def enable_plotting(index):
     canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
     canvas.draw()
 
+    # Show the close plot button
+    close_plot_button.pack(side=tk.BOTTOM, pady=15)
+
 
 def close_plot():
     for widget in plot_frame.winfo_children():
         widget.destroy()
+        # Hide the plot button after closing the plot
+        close_plot_button.pack_forget()
 
 
 close_plot_button = ttk.Button(root, text="Close Plot", command=close_plot)
-close_plot_button.pack(side=tk.BOTTOM, pady=20)
 
 # Start the serial data reading in a separate thread
 serial_thread = threading.Thread(target=generate_random_serial_data)
