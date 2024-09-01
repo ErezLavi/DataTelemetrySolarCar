@@ -1,6 +1,5 @@
 # import serial
 # import concurrent.futures
-# import tkintermapview
 import tkinter as tk
 from tkinter import ttk
 import csv
@@ -14,41 +13,58 @@ import random
 import queue
 
 
-bg_color = "#cccccc"  # Light gray
-label_bg_color = "#bbbbbb"  # Slightly darker gray
-header_bg_color = "#021526"
+bg_color = "#cccccc"         # Light gray
+label_bg_color = "#bbbbbb"   # Slightly darker gray
+header_bg_color = "#021526"  # Dark blue
 
 # Create the main GUI window
 root = tk.Tk()
 root.title("Serial Data Logger")
 root.geometry("1300x750")
 
-# Create a frame for the header
-header_frame = tk.Frame(root, bg=header_bg_color, relief="solid", bd=1)
-header_frame.pack(fill=tk.X, padx=5, pady=5, ipady=10)
 
-# Create a header label
-header_label = tk.Label(header_frame, text="Serial Data Logger", font=("Arial", 20),
-                        background=header_bg_color, fg=bg_color)
-header_label.pack(side=tk.LEFT, padx=10)
+def create_header_frame(rt, header_bg, background_color):
+    header_f = tk.Frame(rt, bg=header_bg, relief="solid", bd=1)
+    header_f.pack(fill=tk.X, padx=5, pady=5, ipady=10)
 
-# Add buttons to the header frame
-button_trip_analysis = ttk.Button(header_frame, text="Trip analysis")
-button_trip_analysis.pack(side=tk.RIGHT, padx=15)
+    create_header_label(header_f, header_bg_color, background_color)
+    create_header_buttons(header_f)
 
-button_gps = ttk.Button(header_frame, text="GPS")
-button_gps.pack(side=tk.RIGHT, padx=15)
+    return header_f
 
-button_data = ttk.Button(header_frame, text="Data")
-button_data.pack(side=tk.RIGHT, padx=15)
 
-# Create a frame to hold the data labels, data values, and plot buttons
-data_frame = ttk.Frame(root)
-data_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=10)  # Add padding for touch-friendly tapping
+def create_header_label(header_f, header_bg, background_color):
+    header_label = tk.Label(header_f, text="Serial Data Logger", font=("Arial", 20),
+                            background=header_bg, fg=background_color)
+    header_label.pack(side=tk.LEFT, padx=10)
 
-# Create a frame to hold the plot
-plot_frame = ttk.Frame(root)
-plot_frame.pack(fill=tk.BOTH, expand=True, padx=5)
+
+def create_header_buttons(header_f):
+    button_trip_analysis = ttk.Button(header_f, text="Trip analysis")
+    button_trip_analysis.pack(side=tk.RIGHT, padx=15)
+
+    button_gps = ttk.Button(header_f, text="GPS")
+    button_gps.pack(side=tk.RIGHT, padx=15)
+
+    button_data = ttk.Button(header_f, text="Data")
+    button_data.pack(side=tk.RIGHT, padx=15)
+
+
+def create_data_frame(rt):
+    data_f = ttk.Frame(rt)
+    data_f.pack(fill=tk.BOTH, expand=True, padx=5, pady=10)
+    return data_f
+
+
+def create_plot_frame(rt):
+    plot_f = ttk.Frame(rt)
+    plot_f.pack(fill=tk.BOTH, expand=True, padx=5)
+    return plot_f
+
+
+header_frame = create_header_frame(root, header_bg_color, bg_color)
+data_frame = create_data_frame(root)
+plot_frame = create_plot_frame(root)
 
 
 # Data column labels
@@ -56,42 +72,52 @@ column_labels = ["Timestamp", "Ah", "Voltage (V)", "Current (A)", "Power (Watt)"
                  "Distance (m)", "Degree (°)", "RPM (Rounds/Minute)", "ThO", "ThI",
                  "AuxA", "AuxD", "Flgs"]
 
-
-# Create labels for data values, arrange them in a table-like format
 value_labels = []
 plot_buttons = []
 
 
-# Create rows for data values and buttons
-for i, label_text in enumerate(column_labels):
-    label = ttk.Label(data_frame, text=label_text, font=("Arial", 12, "bold"), background=label_bg_color)
-    label.grid(row=0, column=i, padx=3, pady=5, sticky="ew")  # Extend label to fill both horizontal directions
+def create_labels_and_buttons(d_frame, c_label, v_labels, plot_buttons, label_bg_color, bg_color):
+    for i, label_text in enumerate(c_label):
+        # Create label for the column header
+        label = ttk.Label(d_frame, text=label_text, font=("Arial", 12, "bold"), background=label_bg_color)
+        label.grid(row=0, column=i, padx=3, pady=5, sticky="ew")
 
-    if i != 0:  # Exclude the timestamp label
-        value_label = ttk.Label(data_frame, text="", font=("Arial", 12), background=bg_color)
-        value_label.grid(row=1, column=i, padx=5, pady=5, sticky="ew")  # Extend value label to fill both horizontal directions
-        value_labels.append(value_label)
+        if i != 0:  # Exclude the timestamp label
+            # Create label for the data value
+            value_label = ttk.Label(d_frame, text="", font=("Arial", 12), background=bg_color)
+            value_label.grid(row=1, column=i, padx=5, pady=5, sticky="ew")
+            v_labels.append(value_label)
 
-        plot_button = ttk.Button(data_frame, text="Plot", state=tk.DISABLED, width=8,
-                                 command=lambda i=i: enable_plotting(i))
-        plot_button.grid(row=2, column=i, padx=5, pady=5, sticky="ew")  # Extend plot button to fill both horizontal directions
-        plot_buttons.append(plot_button)
+            # Create button for plotting
+            plot_button = ttk.Button(d_frame, text="Plot", state=tk.DISABLED, width=8,
+                                     command=lambda i=i: enable_plotting(i))
+            plot_button.grid(row=2, column=i, padx=5, pady=5, sticky="ew")
+            plot_buttons.append(plot_button)
 
-# Create a timestamp label and function to update it
-timestamp_label = ttk.Label(data_frame, text="", font=("Arial", 12), background=bg_color)
-timestamp_label.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
+    # Create a timestamp label
+    ts_label = ttk.Label(d_frame, text="", font=("Arial", 12), background=bg_color)
+    ts_label.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
+
+    return ts_label
+
+
+timestamp_label = create_labels_and_buttons(data_frame, column_labels,
+                                            value_labels, plot_buttons, label_bg_color, bg_color)
 
 # Create a stop event for the thread
 stop_event = threading.Event()
 
 
-# Create a CSV file with headers
-current_date = date.today().strftime("%Y-%m-%d")
-csv_filename = f"serial_data_{current_date}.csv"
+def create_csv_file():
+    current_date = date.today().strftime("%Y-%m-%d")
+    csv_name = f"serial_data_{current_date}.csv"
+    with open(csv_name, 'w', newline='') as csvfile:
+        csv_writer = csv.writer(csvfile, delimiter='\t')
+        csv_writer.writerow(column_labels)
+    return csv_name
 
-with open(csv_filename, 'w', newline='') as csvfile:
-    csv_writer = csv.writer(csvfile, delimiter='\t')
-    csv_writer.writerow(column_labels)
+
+csv_filename = create_csv_file()
 
 # Queue to store data for updating the GUI
 data_queue = queue.Queue()
@@ -241,36 +267,3 @@ root.protocol("WM_DELETE_WINDOW", on_close)
 
 # Start the main GUI loop
 root.mainloop()
-
-################################ Map View ###############################################
-
-# #Create a frame to hold the map
-# map_frame = ttk.Frame(root)
-# map_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=20)
-
-
-# def show_map():
-#     map_widget = tkintermapview.TkinterMapView(map_frame, width=screen_width, height=300)
-#     map_widget.pack(side=tk.RIGHT, padx=10, pady=20)
-#     map_widget.set_position(32.113582, 34.817434) # Tel aviv, israel
-#     #Set a path on the map
-#     rand_position_list = [(32.113582, 34.817434), (32.113593, 34.817635), (32.113483, 34.818596)]
-#     demo_path = map_widget.set_path(rand_position_list, color="green", width=8)
-#     demo_path.set_position_list(rand_position_list)
-
-
-# def close_map():
-#     for widget in map_frame.winfo_children():
-#         widget.destroy()
-#
-# # Create a frame to hold the buttons in a row
-# button_frame = ttk.Frame(root)
-# button_frame.pack(side=tk.BOTTOM, pady=20, anchor=tk.CENTER)
-#
-# # Place the buttons in a row using grid
-# show_map_button = ttk.Button(button_frame, text="Show Map", command=show_map)
-# show_map_button.grid(row=0, column=0, padx=10)
-# close_map_button = ttk.Button(button_frame, text="Close Map", command=close_map)
-# close_map_button.grid(row=0, column=1, padx=10)
-
-########################################################################################
