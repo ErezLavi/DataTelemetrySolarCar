@@ -1,5 +1,6 @@
 # import serial
 # import concurrent.futures
+import tkintermapview
 import tkinter as tk
 from tkinter import ttk
 import csv
@@ -22,6 +23,34 @@ root = tk.Tk()
 root.title("Serial Data Logger")
 root.geometry("1300x750")
 
+################################# Map view ############################################
+# Create a frame for the map view
+map_frame = ttk.Frame(root)
+
+
+def show_map_view():
+    if plot_frame.winfo_ismapped():  # If the plot frame is currently shown
+        plot_frame.pack_forget()     # Hide the plot frame
+        map_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=10)
+        show_map()
+
+
+def show_map():
+    map_widget = tkintermapview.TkinterMapView(map_frame, width=1300, height=600)
+    map_widget.pack(side=tk.RIGHT, padx=5, pady=10)
+    map_widget.set_position(32.113582, 34.817434) # Tel aviv, israel
+    #Set a path on the map
+    rand_position_list = [(32.113582, 34.817434), (32.113593, 34.817635), (32.113483, 34.818596)]
+    demo_path = map_widget.set_path(rand_position_list, color="#021526", width=8)
+    demo_path.set_position_list(rand_position_list)
+
+
+def close_map():
+    for widget in map_frame.winfo_children():
+        widget.destroy()
+
+########################################################################################
+
 
 def create_header_frame(rt, header_bg, background_color):
     header_f = tk.Frame(rt, bg=header_bg, relief="solid", bd=1)
@@ -43,10 +72,10 @@ def create_header_buttons(header_f):
     button_trip_analysis = ttk.Button(header_f, text="Trip analysis")
     button_trip_analysis.pack(side=tk.RIGHT, padx=15)
 
-    button_gps = ttk.Button(header_f, text="GPS")
+    button_gps = ttk.Button(header_f, text="GPS", command=show_map_view)
     button_gps.pack(side=tk.RIGHT, padx=15)
 
-    button_data = ttk.Button(header_f, text="Data")
+    button_data = ttk.Button(header_f, text="Data", command=show_plot_view)
     button_data.pack(side=tk.RIGHT, padx=15)
 
 
@@ -60,6 +89,13 @@ def create_plot_frame(rt):
     plot_f = ttk.Frame(rt)
     plot_f.pack(fill=tk.BOTH, expand=True, padx=5)
     return plot_f
+
+
+def show_plot_view():
+    if map_frame.winfo_ismapped():  # If the map frame is currently shown
+        map_frame.pack_forget()      # Hide the map frame
+        close_map()
+    plot_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=10)
 
 
 header_frame = create_header_frame(root, header_bg_color, bg_color)
@@ -267,3 +303,5 @@ root.protocol("WM_DELETE_WINDOW", on_close)
 
 # Start the main GUI loop
 root.mainloop()
+
+
