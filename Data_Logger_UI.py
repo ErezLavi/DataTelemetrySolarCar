@@ -10,6 +10,7 @@ import threading
 import random
 import queue
 import plotting
+import math
 
 
 bg_color = "#cccccc"         # Light gray
@@ -38,7 +39,6 @@ def show_map_view():
 
 
 def show_map():
-    global rand_position_list
     map_widget = tkintermapview.TkinterMapView(map_frame, width=1300, height=600)
     map_widget.pack(side=tk.RIGHT, padx=5, pady=10)
     # Set initial position (TLV, israel)
@@ -53,16 +53,21 @@ def show_map():
     update_path()  # Start updating path
 
 
-def generate_random_gps_line():
-    global rand_position_list
+def generate_random_gps_line(a=0.005, b=0.005, angle_step=0.1):
     current_lat, current_lng = rand_position_list[-1]
-    lng_step = 0.0001
+    t = 0  # Initial angle
 
     while not stop_event.is_set():
-        current_lng += lng_step
-        rand_position_list.append((current_lat, current_lng))
-        time.sleep(1)  # Update position every 1 second
+        # Update the position using parametric equations for an ellipse
+        new_lat = current_lat + (a * math.cos(t))
+        new_lng = current_lng + (b * math.sin(t))
 
+        rand_position_list.append((new_lat, new_lng))
+
+        # Increment the angle for the next iteration
+        t += angle_step
+
+        time.sleep(1)  # Update position every 1 second
 
 def close_map():
     for widget in map_frame.winfo_children():
