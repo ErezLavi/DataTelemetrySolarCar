@@ -10,7 +10,7 @@ global plot_index, fig, ax, ani
 def animate(i, csv_filename, column_labels):
     data = []
     with open(csv_filename, 'r') as csvfile:
-        reader = csv.reader(csvfile, delimiter='\t')
+        reader = csv.reader(csvfile, delimiter=',')
         next(reader)  # Skip header row
         for row in reader:
             data.append(row)

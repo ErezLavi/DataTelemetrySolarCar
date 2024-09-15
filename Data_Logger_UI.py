@@ -166,7 +166,7 @@ def create_csv_file():
     current_date = date.today().strftime("%Y-%m-%d")
     csv_name = f"serial_data_{current_date}.csv"
     with open(csv_name, 'w', newline='') as csvfile:
-        csv_writer = csv.writer(csvfile, delimiter='\t')
+        csv_writer = csv.writer(csvfile, delimiter=',')
         csv_writer.writerow(column_labels)
     return csv_name
 
@@ -202,7 +202,7 @@ def generate_random_serial_data():
         serial_data.insert(0, timestamp)
         serial_data.insert(4, power)
         with open(csv_filename, 'a', newline='') as csvfile:
-            csv_data_writer = csv.writer(csvfile, delimiter='\t')
+            csv_data_writer = csv.writer(csvfile, delimiter=',')
             csv_data_writer.writerow(serial_data)
 
         data_queue.put(serial_data)
