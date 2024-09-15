@@ -6,12 +6,10 @@ from tkinter import ttk
 import csv
 from datetime import datetime, date
 import time
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.animation import FuncAnimation
 import threading
 import random
 import queue
+import plotting
 
 
 bg_color = "#cccccc"         # Light gray
@@ -22,10 +20,15 @@ header_bg_color = "#021526"  # Dark blue
 root = tk.Tk()
 root.title("Serial Data Logger")
 root.geometry("1300x750")
+global after_id
 
 ################################# Map view ############################################
 # Create a frame for the map view
 map_frame = ttk.Frame(root)
+
+# Initialize stop_event
+stop_event = threading.Event()
+rand_position_list = [(32.113582, 34.817434)]
 
 
 def show_map_view():
@@ -36,13 +39,32 @@ def show_map_view():
 
 
 def show_map():
+    global rand_position_list
     map_widget = tkintermapview.TkinterMapView(map_frame, width=1300, height=600)
     map_widget.pack(side=tk.RIGHT, padx=5, pady=10)
-    map_widget.set_position(32.113582, 34.817434) # Tel aviv, israel
-    #Set a path on the map
-    rand_position_list = [(32.113582, 34.817434), (32.113593, 34.817635), (32.113483, 34.818596)]
+    # Set initial position (Afeka college, TLV)
+    center_lat, center_lng = 32.113582, 34.817434
+    map_widget.set_position(center_lat, center_lng)
+
     demo_path = map_widget.set_path(rand_position_list, color="#021526", width=8)
-    demo_path.set_position_list(rand_position_list)
+    # Periodically update the path
+    def update_path():
+        if not stop_event.is_set():
+            demo_path.set_position_list(rand_position_list)
+            map_widget.after(1000, update_path)  # Schedule next update
+
+    update_path()  # Start updating path
+
+
+def generate_random_gps_line():
+    global rand_position_list
+    current_lat, current_lng = rand_position_list[-1]
+    lng_step = 0.0001
+
+    while not stop_event.is_set():
+        current_lng += lng_step
+        rand_position_list.append((current_lat, current_lng))
+        time.sleep(1)  # Update position every 1 second
 
 
 def close_map():
@@ -126,7 +148,9 @@ def create_labels_and_buttons(d_frame, c_label, v_labels, plot_buttons, label_bg
 
             # Create button for plotting
             plot_button = ttk.Button(d_frame, text="Plot", state=tk.DISABLED, width=8,
-                                     command=lambda i=i: enable_plotting(i))
+                                     command=lambda i=i: plotting.enable_plotting(i, plot_frame, csv_filename,
+                                                                                  column_labels, close_plot_button))
+
             plot_button.grid(row=2, column=i, padx=5, pady=5, sticky="ew")
             plot_buttons.append(plot_button)
 
@@ -139,9 +163,6 @@ def create_labels_and_buttons(d_frame, c_label, v_labels, plot_buttons, label_bg
 
 timestamp_label = create_labels_and_buttons(data_frame, column_labels,
                                             value_labels, plot_buttons, label_bg_color, bg_color)
-
-# Create a stop event for the thread
-stop_event = threading.Event()
 
 
 def create_csv_file():
@@ -183,7 +204,6 @@ def generate_random_serial_data():
         power = round(current * voltage, 2)
         serial_data.insert(0, timestamp)
         serial_data.insert(4, power)
-
         with open(csv_filename, 'a', newline='') as csvfile:
             csv_data_writer = csv.writer(csvfile, delimiter='\t')
             csv_data_writer.writerow(serial_data)
@@ -215,79 +235,17 @@ def update_gui():
         after_id = root.after(1000, update_gui)  # Update every 1 second (1000 milliseconds)
 
 
-################################# Plot view ############################################
-# Define global variables for plotting data
-global plot_index, fig, ax, ani
-
-
-def animate(i):
-    data = []
-    with open(csv_filename, 'r') as csvfile:
-        reader = csv.reader(csvfile, delimiter='\t')
-        next(reader)  # Skip header row
-        for row in reader:
-            data.append(row)
-
-    if data:
-        y_values = [float(row[plot_index]) for row in data]
-
-        # Filter to the last 60 seconds of data
-        if len(y_values) > 60:
-            y_values = y_values[-60:]
-
-        # Generate x-values from 60 to 0 (assuming 1 second intervals)
-        x_values = list(range(60 - len(y_values), 60))
-
-        ax.clear()
-        ax.plot(x_values, y_values, label=column_labels[plot_index])
-        ax.legend(loc='upper left')
-        ax.set_xlabel("Time (seconds)")
-        ax.set_ylabel(column_labels[plot_index])
-        ax.set_title(f"{column_labels[plot_index]} vs Time")
-
-        # Set the x-axis limit to 0-60
-        ax.set_xlim([0, 60])
-
-        # Set x-ticks to every 10 seconds
-        ax.set_xticks(range(0, 61, 10))  # Ticks at 0, 10, 20, ..., 60
-
-        # Add gridlines at every 10 seconds
-        ax.grid(True, which='both', linestyle='--', linewidth=0.5)
-
-
-def enable_plotting(index):
-    global plot_index, fig, ax, ani
-    plot_index = index
-
-    # Close any existing plot before opening a new one
-    close_plot()
-
-    # Create a new figure and axis for the new plot
-    fig, ax = plt.subplots(figsize=(8, 4))
-    ani = FuncAnimation(fig, animate, interval=1000, cache_frame_data=False)
-
-    # Embed the plot in the Tkinter window
-    canvas = FigureCanvasTkAgg(fig, master=plot_frame)
-    canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-    canvas.draw()
-
-    # Show the close plot button
-    close_plot_button.pack(side=tk.BOTTOM, pady=15)
-
-
-def close_plot():
-    for widget in plot_frame.winfo_children():
-        widget.destroy()
-        # Hide the plot button after closing the plot
-        close_plot_button.pack_forget()
-
-
-close_plot_button = ttk.Button(root, text="Close Plot", command=close_plot)
+close_plot_button = ttk.Button(root, text="Close Plot", command=lambda: plotting.close_plot(plot_frame))
 
 # Start the serial data reading in a separate thread
 serial_thread = threading.Thread(target=generate_random_serial_data)
 serial_thread.daemon = True  # Exit the thread when the main program exits
 serial_thread.start()
+
+# Start the GPS data reading in a separate thread
+gps_thread = threading.Thread(target=generate_random_gps_line)
+gps_thread.daemon = True
+gps_thread.start()
 
 
 def on_close():
