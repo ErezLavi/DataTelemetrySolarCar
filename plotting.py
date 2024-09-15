@@ -47,7 +47,7 @@ def enable_plotting(index, plot_frame, csv_filename, column_labels, close_plot_b
     plot_index = index
 
     # Close any existing plot before opening a new one
-    close_plot(plot_frame)
+    close_plot(plot_frame, close_plot_button)
 
     # Create a new figure and axis for the new plot
     fig, ax = plt.subplots(figsize=(8, 4))
@@ -62,7 +62,9 @@ def enable_plotting(index, plot_frame, csv_filename, column_labels, close_plot_b
     close_plot_button.pack(side=tk.BOTTOM, pady=15)
 
 
-def close_plot(plot_frame):
+def close_plot(plot_frame, close_plot_button):
     for widget in plot_frame.winfo_children():
         widget.destroy()
+    if close_plot_button:
+        close_plot_button.pack_forget()
 

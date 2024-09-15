@@ -21,19 +21,18 @@ root = tk.Tk()
 root.title("Serial Data Logger")
 root.geometry("1300x750")
 global after_id
-
-################################# Map view ############################################
-# Create a frame for the map view
-map_frame = ttk.Frame(root)
-
 # Initialize stop_event
 stop_event = threading.Event()
+
+# Map view #############################################
+map_frame = ttk.Frame(root)
 rand_position_list = [(32.113582, 34.817434)]
 
 
 def show_map_view():
     if plot_frame.winfo_ismapped():  # If the plot frame is currently shown
         plot_frame.pack_forget()     # Hide the plot frame
+        plotting.close_plot(plot_frame, close_plot_button)
         map_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=10)
         show_map()
 
@@ -42,17 +41,15 @@ def show_map():
     global rand_position_list
     map_widget = tkintermapview.TkinterMapView(map_frame, width=1300, height=600)
     map_widget.pack(side=tk.RIGHT, padx=5, pady=10)
-    # Set initial position (Afeka college, TLV)
+    # Set initial position (TLV, israel)
     center_lat, center_lng = 32.113582, 34.817434
     map_widget.set_position(center_lat, center_lng)
-
     demo_path = map_widget.set_path(rand_position_list, color="#021526", width=8)
-    # Periodically update the path
+
     def update_path():
         if not stop_event.is_set():
             demo_path.set_position_list(rand_position_list)
-            map_widget.after(1000, update_path)  # Schedule next update
-
+            map_widget.after(1000, update_path)
     update_path()  # Start updating path
 
 
@@ -71,7 +68,7 @@ def close_map():
     for widget in map_frame.winfo_children():
         widget.destroy()
 
-########################################################################################
+# Create app frames #########################################
 
 
 def create_header_frame(rt, header_bg, background_color):
@@ -164,7 +161,7 @@ def create_labels_and_buttons(d_frame, c_label, v_labels, plot_buttons, label_bg
 timestamp_label = create_labels_and_buttons(data_frame, column_labels,
                                             value_labels, plot_buttons, label_bg_color, bg_color)
 
-
+# CSV File #############################################
 def create_csv_file():
     current_date = date.today().strftime("%Y-%m-%d")
     csv_name = f"serial_data_{current_date}.csv"
@@ -179,7 +176,7 @@ csv_filename = create_csv_file()
 # Queue to store data for updating the GUI
 data_queue = queue.Queue()
 
-################################# Serial Data ############################################
+# Serial Data ############################################
 def generate_random_serial_data():
     while not stop_event.is_set():
         # Generate random values for each column except timestamp
@@ -212,7 +209,7 @@ def generate_random_serial_data():
         time.sleep(1)  # Simulate a 1-second delay between data readings
 
 
-################################# GUI Update ############################################
+# GUI Update ############################################
 def update_gui():
     global after_id
     if not stop_event.is_set():
@@ -235,14 +232,13 @@ def update_gui():
         after_id = root.after(1000, update_gui)  # Update every 1 second (1000 milliseconds)
 
 
-close_plot_button = ttk.Button(root, text="Close Plot", command=lambda: plotting.close_plot(plot_frame))
+close_plot_button = ttk.Button(root, text="Close Plot", command=lambda: plotting.close_plot(plot_frame, close_plot_button))
 
-# Start the serial data reading in a separate thread
+# Threads ###############################################
 serial_thread = threading.Thread(target=generate_random_serial_data)
 serial_thread.daemon = True  # Exit the thread when the main program exits
 serial_thread.start()
 
-# Start the GPS data reading in a separate thread
 gps_thread = threading.Thread(target=generate_random_gps_line)
 gps_thread.daemon = True
 gps_thread.start()
@@ -251,6 +247,7 @@ gps_thread.start()
 def on_close():
     stop_event.set()             # Set the stop event to exit the thread
     serial_thread.join()         # Wait for the thread to finish
+    gps_thread.join()            # Wait for the GPS thread to finish
     root.after_cancel(after_id)  # Cancel the timestamp update
     root.quit()
 
