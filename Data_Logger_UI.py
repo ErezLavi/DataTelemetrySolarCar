@@ -232,14 +232,14 @@ def read_serial_data():
     while not stop_event.is_set():
         try:
             # Read a line of data from the serial port
-            raw_data = ser.readline().decode('utf-8').strip().split('\t')  # Adjust encoding if necessary
+            raw_data = ser.readline().decode('utf-8').strip().split('\t')
 
             # Parse the incoming data (assuming comma-separated values)
             if raw_data:
                 serial_data = raw_data # Adjust delimiter if necessary
 
                 # Ensure the data is in the expected format and size
-                if len(serial_data) >= 12:  # Update this if you expect more or fewer columns
+                if len(serial_data) >= 14:
                     timestamp = datetime.now().strftime("%H:%M:%S")
                     current = float(serial_data[2])  # Current (A)
                     voltage = float(serial_data[1])  # Voltage (V)
